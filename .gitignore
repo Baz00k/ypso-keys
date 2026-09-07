@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+node_modules/
+*.session.json
+*.keys.json
+*.prefs.xml
+.coverage
+htmlcov/
+secrets/
+.env
+*.local.json

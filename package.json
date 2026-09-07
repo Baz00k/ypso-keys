@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "build:agent": "esbuild agent/read-preferences.js --bundle --format=iife --platform=neutral --outfile=src/ypso_keys/agent.js"
+  },
+  "dependencies": {
+    "buffer": "6.0.3",
+    "frida-java-bridge": "7.0.13"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}
