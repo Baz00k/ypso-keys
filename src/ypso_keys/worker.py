@@ -13,9 +13,11 @@ import frida
 
 def extract(address: str, config: dict[str, Any]) -> dict[str, Any]:
     device = frida.get_device_manager().add_remote_device(address)
-    pid = device.spawn([config["package"]])
-    session = device.attach(pid)
+    pid: int | None = None
+    session = None
     try:
+        pid = device.spawn([config["package"]])
+        session = device.attach(pid)
         script = session.create_script(files("ypso_keys").joinpath("agent.js").read_text())
         # No application log, Frida console, or exception stack is forwarded.
         script.set_log_handler(lambda *_: None)
@@ -33,8 +35,12 @@ def extract(address: str, config: dict[str, Any]) -> dict[str, Any]:
         raise TimeoutError
     finally:
         # Kill while the main thread remains parked, before removing the hook.
-        device.kill(pid)
-        session.detach()
+        if pid is not None:
+            try:
+                device.kill(pid)
+            finally:
+                if session is not None:
+                    session.detach()
 
 
 def main() -> None:

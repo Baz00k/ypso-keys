@@ -7,8 +7,10 @@ An alternate encrypted-preferences profile has exactly these fields:
   "id": "example-encrypted-prefs-v1",
   "package": "org.example.app",
   "preferences": "encrypted_preferences",
+  "preferences_path": "shared_prefs/encrypted_preferences.xml",
   "alias": "_androidx_security_master_key_",
   "identity": "explicit",
+  "identity_config": null,
   "encoding": "base64",
   "fields": {
     "shared_key": "sharedKey",
@@ -23,6 +25,12 @@ values verified for that app/version. `--profile` is accepted by doctor and extr
 
 - `identity`: `mylife-db-v1` uses the observed mylife tables and UUID-to-MAC mapping;
   `explicit` requires both `--expect-pump` and `--pump-serial` and records that provenance.
+- `preferences_path`: app-data-relative path used only to verify that encrypted storage
+  did not change. It must be relative and cannot contain `..`.
+- `identity_config`: `null` for explicit identity. The built-in versioned mylife
+  adapter declares its app-relative database path and exact read-only query here.
+  Arbitrary SQL is intentionally not accepted from custom profiles; a different
+  database schema needs a reviewed strategy ID rather than executing profile code.
 - `encoding`: exactly `hex` or `base64`. No heuristic decoding or memory scanning.
 - `fields`: exactly the three unique preference suffixes shown. The worker finds
   one prefix ending in the session key suffix and reads the same prefix for the
@@ -33,8 +41,9 @@ values verified for that app/version. `--profile` is accepted by doctor and extr
 - Existing preference file, both Tink keysets and master alias must already exist.
   The tool never provisions a master key or intentionally creates app key storage.
 
-Profiles contain storage metadata, not external executable paths or device-specific
-filesystem locations. Android app data directories are resolved from package metadata.
+Profiles contain app-relative storage metadata, not external executable paths or
+device-specific absolute locations. Android app data directories are resolved from
+package metadata.
 
 To add a new extraction strategy, implement a separate bounded worker behind
 `capture()` and return the normalized raw fields consumed by `normalize()`. Keep

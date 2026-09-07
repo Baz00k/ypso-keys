@@ -45,8 +45,9 @@ ypso-keys doctor --source SOURCE_SERIAL --target TARGET_SERIAL
 ypso-keys extract --source SOURCE_SERIAL --expect-pump AA:BB:CC:DD:EE:FF --json
 ```
 
-Extraction writes a new `0600` session file to the XDG state directory
-(`$XDG_STATE_HOME/ypso-keys`, otherwise `~/.local/state/ypso-keys`). Existing
+Extraction writes a new `0600` session file to the application state directory.
+Set `YPSO_KEYS_STATE_DIR` for an explicit location; otherwise the standard XDG
+state location is used. Existing
 outputs are never overwritten. Terminal and JSON output contain only metadata and
 a key fingerprint. The session file contains the plaintext key and must remain
 private.

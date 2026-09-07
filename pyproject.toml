@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ypso-keys"
-version = "0.2.0"
+version = "0.2.1"
 description = "Repeatable, local YpsoPump session recovery from a rooted donor phone"
 requires-python = ">=3.11"
 dependencies = ["frida==17.17.0"]

@@ -40,7 +40,7 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit one redacted JSON result (also accepted after command)",
     )
-    p.add_argument("--version", action="version", version="ypso-keys 0.2.0")
+    p.add_argument("--version", action="version", version="ypso-keys 0.2.1")
     commands = p.add_subparsers(dest="command", required=True, parser_class=Parser)
     for name, help_text in (
         ("devices", "List all ADB devices without choosing one"),
@@ -72,7 +72,7 @@ def parser() -> argparse.ArgumentParser:
             sub.add_argument(
                 "--output",
                 type=Path,
-                help="New 0600 file; default is under ~/.local/state/ypso-keys/",
+                help="New 0600 file; defaults to the configured application state directory",
             )
             sub.add_argument("--expect-pump", help="Reject a different pump MAC")
             sub.add_argument(

@@ -30,7 +30,7 @@ rpc.exports.read = (config) => new Promise((resolve, reject) => {
       }
       stage = 'file';
       const file = Java.use('java.io.File').$new(
-        context.getApplicationInfo().dataDir.value + '/shared_prefs/' + config.preferences + '.xml');
+        context.getApplicationInfo().dataDir.value + '/' + config.preferences_path);
       if (!file.isFile()) { reject(new Error('PREFERENCES_MISSING')); return; }
       const plain = context.getSharedPreferences(config.preferences, 0);
       for (const name of ['__androidx_security_crypto_encrypted_prefs_key_keyset__',
@@ -75,11 +75,9 @@ rpc.exports.read = (config) => new Promise((resolve, reject) => {
       if (config.identity === 'mylife-db-v1') {
         stage = 'identity';
         const db = Java.use('android.database.sqlite.SQLiteDatabase').openDatabase(
-          context.getApplicationInfo().dataDir.value + '/files/mylifeHealthData.db', null, 1);
+          context.getApplicationInfo().dataDir.value + '/' + config.identity_config.database_path, null, 1);
         try {
-          const cursor = db.rawQuery('SELECT d.SerialNumber, m.UUID FROM "PATIENT.DEVICE" d ' +
-            'JOIN DEVICE_NAME_MAPPING m ON m.DeviceId=d.DeviceId ' +
-            'WHERE d.Active=1 AND m.Name LIKE \'YpsoPump_%\'', null);
+          const cursor = db.rawQuery(config.identity_config.query, null);
           try {
             if (cursor.getCount() !== 1) { reject(new Error('AMBIGUOUS_PUMP_RECORD')); return; }
             cursor.moveToFirst();

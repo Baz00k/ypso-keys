@@ -25,15 +25,21 @@ PORT = 27083
 def app_data_dir(adb: Adb, package: str) -> str:
     output = adb.shell(f"dumpsys package {shlex.quote(package)}").decode()
     matches = re.findall(r"^\s*dataDir=(/[^\s]+)\s*$", output, re.MULTILINE)
-    if len(set(matches)) != 1 or not re.fullmatch(r"/[A-Za-z0-9_./-]+", matches[0]):
+    unique = set(matches)
+    if len(unique) != 1:
         raise ToolError(
             "app_data_dir", "Cannot resolve a unique private data directory for the source app."
         )
-    return str(matches[0])
+    directory = str(unique.pop())
+    if not re.fullmatch(r"/[A-Za-z0-9_./-]+", directory):
+        raise ToolError(
+            "app_data_dir", "Cannot resolve a unique private data directory for the source app."
+        )
+    return directory
 
 
 def preference_digest(adb: Adb, config: dict[str, Any]) -> bytes:
-    file = f"{app_data_dir(adb, config['package'])}/shared_prefs/{config['preferences']}.xml"
+    file = f"{app_data_dir(adb, config['package'])}/{config['preferences_path']}"
     digest = adb.root("sha256sum " + shlex.quote(file)).split()[0]
     if not re.fullmatch(rb"[a-f0-9]{64}", digest):
         raise ToolError("preference_digest", "Cannot fingerprint source encrypted preferences.")
@@ -45,7 +51,13 @@ def stop_server(adb: Adb, pid: int, server: str) -> None:
     if not cmdline:
         return
     parts = cmdline.split(b"\0")
-    if parts[0].decode() != server or f"127.0.0.1:{PORT}".encode() not in parts:
+    try:
+        executable = parts[0].decode("utf-8")
+    except UnicodeDecodeError:
+        raise ToolError(
+            "server_identity", "Recorded server process has malformed identity data."
+        ) from None
+    if executable != server or f"127.0.0.1:{PORT}".encode() not in parts:
         raise ToolError(
             "server_identity", "Recorded PID has changed identity; inspect server manually."
         )
@@ -162,7 +174,12 @@ def recover(adb: Adb) -> dict[str, Any]:
 
 
 def state_dir() -> Path:
-    path = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "ypso-keys"
+    configured = os.environ.get("YPSO_KEYS_STATE_DIR")
+    if configured:
+        path = Path(configured).expanduser()
+    else:
+        root = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
+        path = root / "ypso-keys"
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     if path.is_symlink() or path.stat().st_uid != os.getuid() or path.stat().st_mode & 0o077:
         raise ToolError("state_permissions", "State directory must be owned by you with mode 0700.")

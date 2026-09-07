@@ -10,6 +10,7 @@ from ypso_keys.capture import (
     journal,
     recover,
     recovery_path,
+    stop_server,
     worker_response,
 )
 from ypso_keys.errors import ToolError
@@ -92,6 +93,12 @@ class FakeDonor:
 @pytest.fixture(autouse=True)
 def private_state(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
+
+
+def test_explicit_application_state_directory(tmp_path, monkeypatch):
+    configured = tmp_path / "custom-state"
+    monkeypatch.setenv("YPSO_KEYS_STATE_DIR", str(configured))
+    assert recovery_path("source123").parent == configured
 
 
 def success(*args, **kwargs):
@@ -235,6 +242,22 @@ def test_ambiguous_app_data_directory_fails_closed():
     with pytest.raises(ToolError) as error:
         app_data_dir(source, "org.example.app")
     assert error.value.code == "app_data_dir"
+
+
+def test_missing_app_data_directory_fails_closed():
+    source = FakeDonor()
+    source.shell = lambda command: b"Package metadata without a data directory"
+    with pytest.raises(ToolError) as error:
+        app_data_dir(source, "org.example.app")
+    assert error.value.code == "app_data_dir"
+
+
+def test_malformed_server_identity_becomes_domain_error():
+    source = FakeDonor()
+    source.root = lambda command: b"\xff\0-l\0127.0.0.1:27083\0"
+    with pytest.raises(ToolError) as error:
+        stop_server(source, 123, SERVER)
+    assert error.value.code == "server_identity"
 
 
 @pytest.mark.parametrize("failure", ["stop", "server", "forward", "bluetooth"])

@@ -70,3 +70,25 @@ def test_worker_error_is_redacted(monkeypatch, capsys):
     output = capsys.readouterr()
     assert "secret" not in output.out + output.err
     assert '"ok": false' in output.out
+
+
+def test_spawned_process_is_killed_when_attach_fails(monkeypatch):
+    calls = []
+
+    class Device:
+        def spawn(self, args):
+            calls.append("spawn")
+            return 123
+
+        def attach(self, pid):
+            calls.append("attach")
+            raise RuntimeError("attach failed")
+
+        def kill(self, pid):
+            calls.append("kill")
+
+    manager = SimpleNamespace(add_remote_device=lambda address: Device())
+    monkeypatch.setattr(worker.frida, "get_device_manager", lambda: manager)
+    with pytest.raises(RuntimeError):
+        worker.extract("127.0.0.1:1234", {"package": "org.example.app"})
+    assert calls == ["spawn", "attach", "kill"]

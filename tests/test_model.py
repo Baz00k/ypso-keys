@@ -104,3 +104,24 @@ def test_explicit_profile_needs_both_identity_fields():
     config["identity"] = "explicit"
     with pytest.raises(ToolError, match="requires"):
         normalize(source(), config)
+
+
+def test_explicit_profile_has_no_app_specific_identity_storage(tmp_path):
+    config = profile()
+    config["identity"] = "explicit"
+    config["identity_config"] = None
+    config["preferences"] = "prefs"
+    config["preferences_path"] = "shared_prefs/prefs.xml"
+    path = tmp_path / "profile.json"
+    path.write_text(json.dumps(config))
+    assert profile(path)["identity_config"] is None
+
+
+@pytest.mark.parametrize("relative", ["/absolute/prefs.xml", "../prefs.xml", "files/../prefs.xml"])
+def test_profile_rejects_unsafe_relative_paths(tmp_path, relative):
+    config = profile()
+    config["preferences_path"] = relative
+    path = tmp_path / "profile.json"
+    path.write_text(json.dumps(config))
+    with pytest.raises(ToolError):
+        profile(path)

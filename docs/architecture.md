@@ -17,7 +17,8 @@ is source-specific.
 ADB owns outer lifecycle and cleanup. Frida runs in a separate host process so RPC
 calls have a hard deadline. A private journal makes cleanup recoverable after host
 interruption. Android app data directories are resolved dynamically from package
-metadata; source Frida path is explicit configuration.
+metadata; app-relative files are declared by the versioned source profile. Source
+Frida path and host application state directory are explicit configuration.
 
 The canonical session contains pump identity, 32-byte shared key, source key date,
 capture date, optional reboot counter, and non-device-specific adapter provenance.
