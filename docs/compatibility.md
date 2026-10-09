@@ -21,7 +21,7 @@ A session key lasts at most 28 days.
 - `created_at` is the app's `sharedKeyDate`, the closest value available to when the key was generated.
 - `captured_at` is when you extracted the key. Extracting or re-exporting does not renew the key.
 
-Consumers calculate the deadline as `created_at` plus 28 days. The pump does not report an expiry time, so the tool exports none, and the deadline does not guarantee the pump still accepts the key.
+The key expires at `created_at` plus 28 days. The pump does not report an expiry time, so the tool exports none.
 
 ## Not verified
 
