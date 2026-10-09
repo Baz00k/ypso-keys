@@ -12,7 +12,3 @@ reviewed at commit `de7e867241fafd2fb8061ceeecf42af2883b9eb4`.
 - [Frida Android examples](https://frida.re/docs/examples/android/)
 
 No source code from unlicensed third-party YpsoPump utilities is included.
-
-Research sources disagree about whether the 28-day lifetime is app-side or
-pump-enforced on all relevant firmware. This tool does not resolve that question:
-it preserves source timestamps and always reports pump validity as unverified.
