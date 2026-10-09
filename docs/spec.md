@@ -2,24 +2,24 @@
 
 ## Requirements
 
-- Recover an existing YpsoPump session from a user-owned rooted Android source.
-- Require explicit ADB device selection; never choose the first connected device.
-- Avoid machine-, phone-, account-, repository-owner-, and installation-specific assumptions.
-- Do not hardcode external executable paths or Android private data directories.
-- Provide one documented CLI with structured, redacted output and stable error codes.
-- Separate source adapters, canonical session validation, secure persistence, and destinations.
-- Test malformed state, partial failures, cleanup, concurrency, and secret handling.
-- Never print or commit keys; use restrictive local files.
-- Preserve key age and never imply extraction renews or authenticates a session.
-- Send no pump commands; preserve source storage and restore lifecycle state.
-- Support status-only AAPS export and explicit import into builds granting `run-as` access.
-- Keep unsupported sources, including CamAPS, clearly labeled rather than guessed.
+- Recover an existing YpsoPump session from a rooted Android phone the user owns.
+- Require the user to pick the ADB device explicitly. Never choose the first one connected.
+- Make no assumptions tied to a specific machine, phone, account, repository owner, or installation.
+- Do not hardcode paths to external programs or to Android private data folders.
+- Offer one documented CLI with redacted, structured output and stable error codes.
+- Keep source adapters, session validation, secure storage, and destinations separate.
+- Test malformed state, partial failures, cleanup, concurrent runs, and secret handling.
+- Never print or commit keys. Store them in restrictive local files.
+- Keep the key's age. Never suggest that extraction renews or authenticates a session.
+- Send no pump commands. Leave the source app's storage unchanged and restore the phone's original state.
+- Support status-only AAPS export, and import into builds that allow `run-as`.
+- Label unsupported sources, including CamAPS, as unsupported instead of guessing.
 
-## Coding and security standards
+## Rules for contributors
 
-- Static non-secret errors; never forward external command output or tracebacks.
-- No secret in argv, console, tests, fixtures, docs, Git, or CI artifacts.
-- Validate identifiers before shell interpolation and quote all external values.
-- Fail closed on ambiguous/malformed state. Never replace corrupt preferences with an empty map.
-- Attempt independent cleanup actions even when another cleanup action fails.
-- Hardware behavior must be opt-in and absent from CI.
+- Use fixed error messages with no secrets. Never pass on output from external commands or tracebacks.
+- Keep secrets out of command-line arguments, console output, tests, fixtures, docs, Git, and CI artifacts.
+- Validate identifiers before putting them in a shell command, and quote every external value.
+- Stop on unclear or malformed state. Never replace corrupt preferences with an empty set.
+- Run every independent cleanup step even if another one fails.
+- Hardware tests must be opt-in and never run in CI.

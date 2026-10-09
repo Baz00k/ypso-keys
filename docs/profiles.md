@@ -1,6 +1,6 @@
 # Source profile v1
 
-An alternate encrypted-preferences profile has exactly these fields:
+A profile tells the tool where an app keeps its encrypted preferences and how to read them. It is a JSON file with exactly these fields:
 
 ```json
 {
@@ -20,34 +20,21 @@ An alternate encrypted-preferences profile has exactly these fields:
 }
 ```
 
-This is a schema example, **not a working CamAPS configuration**. Supply actual
-values verified for that app/version. `--profile` is accepted by doctor and extract.
+This example shows the format only. It is not a working CamAPS configuration; you must fill in values verified for the app and version. Pass the file with `--profile` to `doctor` or `extract`.
 
-- `identity`: `mylife-db-v1` uses the observed mylife tables and UUID-to-MAC mapping;
-  `explicit` requires both `--expect-pump` and `--pump-serial` and records that provenance.
-- `preferences_path`: app-data-relative path used only to verify that encrypted storage
-  did not change. It must be relative and cannot contain `..`.
-- `identity_config`: `null` for explicit identity. The built-in versioned mylife
-  adapter declares its app-relative database path and exact read-only query here.
-  Arbitrary SQL is intentionally not accepted from custom profiles; a different
-  database schema needs a reviewed strategy ID rather than executing profile code.
-- `encoding`: exactly `hex` or `base64`. No heuristic decoding or memory scanning.
-- `fields`: exactly the three unique preference suffixes shown. The worker finds
-  one prefix ending in the session key suffix and reads the same prefix for the
-  other fields. Zero/multiple matches fail.
-- Key date: 13-digit Unix epoch milliseconds. Another representation needs a
-  separately tested normalizer, not guessing dates.
-- Reboot counter: decimal string or absent (`null`); range 0..2147483647 for AAPS.
-- Existing preference file, both Tink keysets and master alias must already exist.
-  The tool never provisions a master key or intentionally creates app key storage.
+- `identity`: how the tool learns which pump the key belongs to. `mylife-db-v1` reads the mylife database and converts the stored UUID to the pump's Bluetooth address. `explicit` requires both `--expect-pump` and `--pump-serial` on the command line and records that.
+- `preferences_path`: path to the encrypted file inside the app's data folder. It is only used to confirm the file did not change. It must be relative and cannot contain `..`.
+- `identity_config`: `null` for explicit identity. The built-in mylife adapter keeps its database path and fixed read-only query here. A custom profile that uses `mylife-db-v1` must repeat the built-in query exactly. Any other SQL is rejected, and a different database schema needs a new, reviewed identity strategy in the code.
+- `encoding`: `hex` or `base64`, nothing else. The tool does not guess the encoding or scan memory.
+- `fields`: must contain exactly `shared_key`, `created_at`, and `reboot_counter`. Their values are the preference name endings to look for, and each must be different. The tool finds the one stored entry whose name ends with the `shared_key` name, then reads the other two fields with the same prefix. No match, or more than one, is an error.
+- Key date: a 13-digit Unix timestamp in milliseconds. Other formats need a separately tested converter. The tool never guesses dates.
+- Reboot counter: a decimal string, or `null` if absent. AAPS accepts 0 to 2147483647.
+- The preferences file, both Tink keysets (the encryption keys AndroidX uses), and the master key alias must already exist. The tool never creates a master key or app key storage.
 
-Profiles contain app-relative storage metadata, not external executable paths or
-device-specific absolute locations. Android app data directories are resolved from
-package metadata.
+Profiles hold only paths inside the app. They contain no executable paths and no absolute paths specific to one phone, because the tool finds the app's data folder from the installed package.
 
-To add a new extraction strategy, implement a separate bounded worker behind
-`capture()` and return the normalized raw fields consumed by `normalize()`. Keep
-Android-specific APIs out of `model.py`, secret persistence in `storage.py`, and
-AAPS preferences in `aaps.py`. Add failure-injection tests and actual hardware
-evidence before describing an adapter as supported. Pin host/server/bridge versions
-and rerun unchanged-storage validation when upgrading any of them.
+## Adding a new source
+
+Write a separate, bounded worker behind `capture()` that returns the raw fields `normalize()` expects. Keep Android-specific code out of `model.py`, secret storage in `storage.py`, and AAPS preferences in `aaps.py`.
+
+Add tests that inject failures, and test on real hardware, before calling an adapter supported. When you upgrade the host, server, or bridge versions, pin them and rerun the unchanged-storage check.
