@@ -1,28 +1,22 @@
 # Security model
 
-The tool assumes the operator owns and trusts the host and rooted source device.
-Root and dynamic instrumentation can read all source-app data; the tool narrows its
-own behavior but cannot make a compromised device trustworthy.
+The tool assumes you own and trust both the computer and the rooted phone. Root access and instrumentation can read everything in the source app. The tool limits what it does itself but cannot make a compromised device safe.
 
-## Protected
+## What the tool protects
 
-- Secrets are not printed, placed in argv, copied to shared Android storage, or
-  committed by default patterns.
-- Session and backup files require owner-only permissions and regular-file semantics.
-- App Bluetooth is off and normal initialization is parked during extraction.
-- Encrypted source preferences must remain unchanged.
-- Ambiguous or malformed state fails closed.
-- AAPS import leaves the app stopped and excludes protocol write/read counters.
+- Keys are never printed, passed on the command line, or copied to shared Android storage. The default `.gitignore` patterns keep session files out of Git.
+- Session and backup files must be regular files readable only by you.
+- During extraction, Bluetooth on the source phone is off and the app is held paused.
+- The app's encrypted preferences must stay unchanged.
+- Unclear or malformed state stops the run.
+- AAPS import leaves the app stopped and excludes read and write counters.
 
-## Residual risks
+## Remaining risks
 
-- A source app/runtime upgrade can invalidate hooks or storage assumptions.
-- SIGKILL, host crash, or USB removal can defer cleanup until the source reconnects.
-- The stored app key may not be the current pump key.
-- Root malware, host malware, shell history, backups, or filesystem compromise are
-  outside the tool's protection boundary.
-- The source app's pump-identity association is inferred from its local database,
-  not cryptographically bound by this tool. `--expect-pump` checks that stored identity.
+- An update to the source app or to Android can break the tool's assumptions.
+- If the tool is killed, the computer crashes, or the USB cable is pulled, cleanup waits until the phone reconnects.
+- The key stored in the app may not be the one the pump currently uses.
+- Malware on the phone or computer, shell history, backups, and filesystem compromise are outside what the tool can protect.
+- The link between the key and a pump is inferred from the app's local database. The tool does not verify it cryptographically. `--expect-pump` only compares against the stored identity.
 
-Run `recover` after an interruption and independently authenticate the resulting
-session with a read-only pump operation.
+After an interruption, run `recover`. Then confirm the session works with a read-only request to the pump.

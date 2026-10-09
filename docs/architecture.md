@@ -9,22 +9,12 @@ CLI
  └─ destination adapter (AndroidAPS)
 ```
 
-The current worker supports AndroidX EncryptedSharedPreferences. It spawns the
-source app suspended, installs hooks before resume, parks the main thread before
-`Application.attach`, and reads only configured values. A read-only identity query
-is source-specific.
+The only worker so far reads AndroidX EncryptedSharedPreferences. It starts the source app paused and installs its hooks (small pieces of code that watch the app) before the app resumes. It holds the app's main thread before `Application.attach`, so the app never starts normally, and it reads only the values the profile names. The query that finds which pump the key belongs to depends on the source app.
 
-ADB owns outer lifecycle and cleanup. Frida runs in a separate host process so RPC
-calls have a hard deadline. A private journal makes cleanup recoverable after host
-interruption. Android app data directories are resolved dynamically from package
-metadata; app-relative files are declared by the versioned source profile. Source
-Frida path and host application state directory are explicit configuration.
+ADB handles starting and stopping the app and cleanup. Frida runs in a separate process on the computer, so every call to it has a hard time limit. A private journal lets cleanup finish even if the computer was interrupted.
 
-The canonical session contains pump identity, 32-byte shared key, source key date,
-capture date, optional reboot counter, and non-device-specific adapter provenance.
-It intentionally excludes source-device identifiers, credentials, private keys,
-read counters, and write counters.
+The tool finds the app's data folders at runtime from the installed package. The source profile lists which files inside the app to use. You supply the `frida-server` location and the folder where sessions are saved.
 
-Python is used because Frida's maintained bindings are Python-native. A Rust front
-end would still require a Frida runtime boundary while adding another binding and
-packaging layer.
+A session holds the pump's Bluetooth address, the 32-byte shared key, the key date from the source app, the capture date, an optional reboot counter, and adapter details that do not identify a device. It never holds source-device identifiers, credentials, private keys, or read and write counters.
+
+The tool is written in Python because Frida's maintained bindings are Python. A Rust version would still need Frida, plus an extra binding and packaging layer.

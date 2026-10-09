@@ -1,25 +1,17 @@
 # ypso-keys
 
-A local CLI for recovering an existing YpsoPump session from an Android app that
-owns it and preparing that session for AndroidAPS. It replaces manual or
-LLM-assisted extraction with a repeatable, tested workflow.
+A command-line tool that copies the session key of a YpsoPump from the mylife App on a rooted Android phone and prepares it for AndroidAPS (AAPS). The session key is the secret the app and the pump share to talk to each other over Bluetooth.
 
-The built-in source adapter supports the mylife App's AndroidX encrypted storage.
-The source-adapter seam is intentionally separate from session validation and
-AndroidAPS export, so other app versions or sources can be added without changing
-the canonical format.
+> Research software, not a medical device. Reading a key does not prove the pump still accepts it, and this tool cannot renew it. Before relying on a key, confirm it works with a read-only status request to the pump.
 
-> Research software, not a medical device. Extraction does not prove that a key is
-> current on the pump and does not renew a session. Verify it with authenticated,
-> read-only status before relying on it.
+Only the mylife App is supported (version 2.6.1.001 on Android 15 is the one verified). CamAPS is not supported.
 
-## Requirements
+## What you need
 
-- Linux or another host with `adb`
-- Python 3.11+
-- Rooted Android source device with the associated app and intact app data
-- Matching Frida client/server versions
-- A `frida-server` binary already present on the source device
+- A computer running Linux (or similar) with `adb` (Android Debug Bridge, which lets the computer control a phone over USB) and Python 3.11 or newer
+- A rooted Android phone, called the source, with the mylife App installed and its data intact
+- Frida, the tool this program uses to read the app's stored settings. The `frida-server` program must already be on the source phone, and its version must match the Frida version on the computer
+- For direct import only: a second phone, called the target, running a debuggable AAPS build
 
 ## Install
 
@@ -28,8 +20,7 @@ uv tool install .
 ypso-keys devices
 ```
 
-The tool does not assume where `frida-server` was installed. Pass its absolute
-path or configure it once in your shell:
+Tell the tool where `frida-server` is on the source phone, either with `--frida-server` or once in your shell:
 
 ```sh
 export YPSO_KEYS_FRIDA_SERVER=/absolute/path/on/android/frida-server
@@ -37,80 +28,66 @@ export YPSO_KEYS_FRIDA_SERVER=/absolute/path/on/android/frida-server
 
 ## Usage
 
-Always select devices by their exact ADB serial:
+`ypso-keys devices` lists connected phones with their ADB serial numbers. Every command that touches a phone needs the exact serial, so the tool never picks a device for you.
 
-```sh
-ypso-keys devices
-ypso-keys doctor --source SOURCE_SERIAL --target TARGET_SERIAL
-ypso-keys extract --source SOURCE_SERIAL --expect-pump AA:BB:CC:DD:EE:FF --json
-```
+1. Check the setup, then extract the key. `--expect-pump` is the pump's Bluetooth address. Extraction fails if the app has a different pump stored.
 
-Extraction writes a new `0600` session file to the application state directory.
-Set `YPSO_KEYS_STATE_DIR` for an explicit location; otherwise the standard XDG
-state location is used. Existing
-outputs are never overwritten. Terminal and JSON output contain only metadata and
-a key fingerprint. The session file contains the plaintext key and must remain
-private.
+   ```sh
+   ypso-keys devices
+   ypso-keys doctor --source SOURCE_SERIAL --target TARGET_SERIAL
+   ypso-keys extract --source SOURCE_SERIAL --expect-pump AA:BB:CC:DD:EE:FF --json
+   ```
 
-```sh
-ypso-keys inspect PATH.session.json
-ypso-keys export-aaps PATH.session.json \
-  --status-only --output aaps.prefs.xml
+   Extraction saves a new session file that only you can read (permissions `0600`). By default it goes in `~/.local/state/ypso-keys`; set `YPSO_KEYS_STATE_DIR` to use another folder. The tool never overwrites an existing file. Screen and JSON output show only metadata and a key fingerprint. The session file holds the key in plain text, so keep it private.
 
-ypso-keys import-aaps PATH.session.json \
-  --target TARGET_SERIAL --status-only --backup aaps-before.xml
-```
+2. Check the session file, then send it to AAPS. `export-aaps` writes a preferences file you can place into AAPS yourself. `import-aaps` writes it directly into AAPS on the target phone.
 
-Direct import needs an installed debuggable AAPS build because it uses Android's
-`run-as` boundary. Package and preference names default to the common AndroidAPS
-fork values and can be overridden:
+   ```sh
+   ypso-keys inspect PATH.session.json
+   ypso-keys export-aaps PATH.session.json \
+     --status-only --output aaps.prefs.xml
 
-```sh
-ypso-keys import-aaps PATH.session.json --target TARGET_SERIAL --status-only \
-  --aaps-package your.aaps.package --aaps-preferences ypso_ble_state \
-  --backup aaps-before.xml
-```
+   ypso-keys import-aaps PATH.session.json \
+     --target TARGET_SERIAL --status-only --backup aaps-before.xml
+   ```
 
-Import checks access before mutation, force-stops AAPS, preserves unrelated
-preferences, removes stale read/write counters, writes through stdin and an atomic
-rename, verifies the result, and leaves AAPS stopped. `--status-only` describes the
-imported state; it does not disable therapy features in the driver.
+   `--status-only` is required. It leaves out the read and write counters, but it does not switch off therapy features in the AAPS driver.
 
-If extraction is interrupted:
+   Direct import needs a debuggable AAPS build, because it uses Android's `run-as` feature to reach the app's private files. The package name defaults to `info.nightscout.androidaps` and the preferences file to `ypso_ble_state`. Override them if your build differs:
 
-```sh
-ypso-keys recover --source SOURCE_SERIAL
-```
+   ```sh
+   ypso-keys import-aaps PATH.session.json --target TARGET_SERIAL --status-only \
+     --aaps-package your.aaps.package --aaps-preferences ypso_ble_state \
+     --backup aaps-before.xml
+   ```
 
-The recovery journal records only lifecycle resources and original Bluetooth
-state. Cleanup checks process identity before terminating anything it owns.
+   Import checks access first, then stops AAPS, keeps your other settings, removes old read and write counters, writes the new file in one step, and verifies the result. It saves your original settings to the `--backup` file and leaves AAPS stopped.
 
-## Safety properties
+3. If extraction is interrupted (for example, the cable is unplugged), clean up with:
 
-- No internet, backend call, BLE pump connection, or pump command during extraction
-- Source Bluetooth is confirmed off before the app process is resumed
-- The app main thread is parked before `Application.attach`; normal app startup is
-  prevented while its Android Keystore-backed preferences are read
-- Source app storage is hashed before and after extraction; changes fail closed
-- Exactly one key namespace and one pump identity must be resolved
-- No login credentials, application private keys, or write/read counters are exported
-- Secret input/output uses restrictive files, no-clobber creation, no symlink
-  following, and bounded size
-- Worker timeouts, structured errors, cleanup journals, and device locks
-- Key age is preserved in `created_at`. Keys last at most 28 days from that date;
-  see [Session key lifetime](docs/compatibility.md#session-key-lifetime)
+   ```sh
+   ypso-keys recover --source SOURCE_SERIAL
+   ```
 
-## Source adapters
+   The tool keeps a small private log of what it changed: the processes it started and the phone's original Bluetooth setting. `recover` uses that log and confirms a process is still the one it started before stopping it.
 
-`--profile FILE` accepts a strict, data-only AndroidX EncryptedSharedPreferences
-profile. See [`docs/profiles.md`](docs/profiles.md). The built-in adapter is
-`mylife-maui-v1`; compatibility is verified for the app version listed in
-[`docs/compatibility.md`](docs/compatibility.md). CamAPS is not yet supported.
+## Safety
 
-New source strategies should return the canonical raw fields consumed by
-`model.normalize()`. Keep app-specific Android APIs in the source worker, session
-semantics in `model.py`, private persistence in `storage.py`, and destination
-formatting in `aaps.py`.
+- Extraction uses no internet, no mylife backend, no Bluetooth connection to the pump, and sends no pump commands.
+- Bluetooth on the source phone is confirmed off before the app resumes.
+- The app is held paused while its stored settings are read, so it never starts normally.
+- The app's storage is hashed before and after extraction. Any change makes the run fail.
+- Exactly one key and one pump must be found, or the run fails.
+- Login credentials, the app's private keys, and read and write counters are never exported.
+- Secret files are private, never overwrite existing files, never follow symlinks, and have a size limit.
+- Timeouts, clear error messages, cleanup logs, and locks that stop two runs on the same phone.
+- The key's age is saved as `created_at`. A key lasts at most 28 days from that date. See [Session key lifetime](docs/compatibility.md#session-key-lifetime).
+
+## Other apps
+
+`--profile FILE` accepts a JSON description of another app that stores keys in AndroidX EncryptedSharedPreferences. See [`docs/profiles.md`](docs/profiles.md). The built-in profile is `mylife-maui-v1`. Tested versions are listed in [`docs/compatibility.md`](docs/compatibility.md).
+
+Developers adding a new source should return the raw fields that `model.normalize()` expects. Keep app-specific Android code in the source worker, session rules in `model.py`, private file handling in `storage.py`, and AAPS formatting in `aaps.py`.
 
 ## Development
 
@@ -125,13 +102,9 @@ uv run ruff format --check src tests
 uv build
 ```
 
-Node is required only to rebuild the committed Frida agent bundle. CI reproduces
-the bundle and checks for drift. Tests use synthetic keys and fake device/process
-boundaries; no hardware operation runs in CI.
+Node is only needed to rebuild the bundled Frida script. CI rebuilds it and fails if the result differs from the committed copy. Tests use fake keys and simulated devices; CI never touches real hardware.
 
-See [`docs/architecture.md`](docs/architecture.md),
-[`docs/compatibility.md`](docs/compatibility.md),
-[`docs/security.md`](docs/security.md), and [`docs/sources.md`](docs/sources.md).
+More detail: [architecture](docs/architecture.md), [compatibility](docs/compatibility.md), [security](docs/security.md), [sources](docs/sources.md).
 
 ## License
 

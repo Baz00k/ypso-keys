@@ -1,39 +1,33 @@
 # Compatibility
 
-## Verified source adapter
+## Verified source
 
 | Adapter | Application | App version | Android | Frida | Status |
 |---|---|---:|---:|---:|---|
-| `mylife-maui-v1` | mylife App | 2.6.1.001 | 15 | 17.17.0 | Repeatable live captures; encrypted preferences unchanged |
+| `mylife-maui-v1` | mylife App | 2.6.1.001 | 15 | 17.17.0 | Repeated captures worked; app storage unchanged |
 
-Device make/model and ADB identifiers are intentionally irrelevant. Compatibility
-is based on storage layout and runtime versions, not a particular phone.
+Phone make and model do not matter. What matters is the app's storage layout and the Android and Frida versions.
 
-The extractor checks runtime prerequisites but cannot prove compatibility with
-untested application/Android versions. Treat upgrades as a new validation target.
+The tool checks its prerequisites but cannot confirm that other app, Android, or Frida versions work. Treat any other version as untested.
 
 ## Destination
 
-AAPS export targets the preference keys used by the experimental YpsoPump driver:
-`ypso_shared_key`, `ypso_pump_mac`, and optional `ypso_reboot_counter`.
-Package and preference-file names are configurable at import time. Direct import
-requires `run-as` access to the installed build.
+The AAPS export writes the preference keys the experimental YpsoPump driver reads: `ypso_shared_key`, `ypso_pump_mac`, and optionally `ypso_reboot_counter`. You can change the package and preference file names at import time. Direct import needs `run-as` access to the installed AAPS build.
 
 ## Session key lifetime
 
-A session key lasts at most 28 days. `created_at` is the app's `sharedKeyDate`,
-the closest available value to when the key was generated. `captured_at` is
-extraction time; extracting or re-exporting a key does not renew it.
+A session key lasts at most 28 days.
 
-The consumer calculates the deadline as `created_at + 28 days`. The pump reports
-no expiry time, so none is exported.
+- `created_at` is the app's `sharedKeyDate`, the closest value available to when the key was generated.
+- `captured_at` is when you extracted the key. Extracting or re-exporting does not renew the key.
+
+The key expires at `created_at` plus 28 days. The pump does not report an expiry time, so the tool exports none.
 
 ## Not verified
 
 - CamAPS extraction
 - Other mylife versions or Android releases
-- Fresh backend/pump key exchange
-- Direct import across all AAPS product flavors/signing configurations
+- A fresh key exchange between the backend and the pump
+- Direct import on every AAPS flavor and signing setup
 
-A successful extraction establishes only that local app storage was read and
-validated. Authenticated pump communication remains a separate verification step.
+A successful extraction only shows that the app's stored data was read and passed validation. Whether the pump accepts the key must be checked separately.

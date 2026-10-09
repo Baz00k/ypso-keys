@@ -1,6 +1,6 @@
 # Third-party notices
 
-The generated `src/ypso_keys/agent.js` bundles the following unmodified packages:
+The generated `src/ypso_keys/agent.js` bundles these unmodified packages:
 
 | Package | Version | License | Source |
 |---|---|---|---|
@@ -9,9 +9,6 @@ The generated `src/ypso_keys/agent.js` bundles the following unmodified packages
 | base64-js | 1.5.1 | MIT | https://github.com/beatgammit/base64-js |
 | ieee754 | 1.2.1 | BSD-3-Clause | https://github.com/feross/ieee754 |
 
-License texts are retained in `licenses/`. `package-lock.json` pins source package
-URLs and integrity hashes; `npm ci && npm run build:agent` reproduces the bundle
-from those sources and this repository's `agent/read-preferences.js`.
+License texts are in `licenses/`. `package-lock.json` pins the package URLs and integrity hashes, so `npm ci && npm run build:agent` rebuilds the bundle from those packages and this repository's `agent/read-preferences.js`.
 
-Frida's Python package is an external runtime dependency, pinned in `uv.lock`;
-see its upstream licensing at https://github.com/frida/frida-python.
+Frida's Python package is a runtime dependency that is installed separately and pinned in `uv.lock`. Its license is at https://github.com/frida/frida-python.
