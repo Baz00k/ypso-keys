@@ -97,8 +97,8 @@ state. Cleanup checks process identity before terminating anything it owns.
 - Secret input/output uses restrictive files, no-clobber creation, no symlink
   following, and bounded size
 - Worker timeouts, structured errors, cleanup journals, and device locks
-- Source timestamps (`created_at`, `captured_at`) are preserved; expiry tracking
-  is left to the consuming driver
+- Key age is preserved in `created_at`. Keys last at most 28 days from that date;
+  see [Session key lifetime](docs/compatibility.md#session-key-lifetime)
 
 ## Source adapters
 

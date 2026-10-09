@@ -19,12 +19,20 @@ AAPS export targets the preference keys used by the experimental YpsoPump driver
 Package and preference-file names are configurable at import time. Direct import
 requires `run-as` access to the installed build.
 
+## Session key lifetime
+
+A session key lasts at most 28 days. `created_at` is the app's `sharedKeyDate`,
+the closest available value to when the key was generated. `captured_at` is
+extraction time; extracting or re-exporting a key does not renew it.
+
+The consumer calculates the deadline as `created_at + 28 days`. The pump reports
+no expiry time, so none is exported.
+
 ## Not verified
 
 - CamAPS extraction
 - Other mylife versions or Android releases
 - Fresh backend/pump key exchange
-- Pump-side expiry semantics
 - Direct import across all AAPS product flavors/signing configurations
 
 A successful extraction establishes only that local app storage was read and
