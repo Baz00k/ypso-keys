@@ -76,7 +76,14 @@ def test_round_trip_and_redaction(session):
     for text in (repr(session), json.dumps(session.summary())):
         assert session.shared_key.hex() not in text
         assert "write_counter" not in text
-    assert session.summary()["pump_validity"] == "unverified"
+    assert set(session.summary()) == {
+        "schema_version",
+        "pump",
+        "key_fingerprint",
+        "created_at",
+        "captured_at",
+        "source",
+    }
 
 
 @pytest.mark.parametrize(

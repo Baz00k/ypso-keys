@@ -15,4 +15,4 @@ No source code from unlicensed third-party YpsoPump utilities is included.
 
 Research sources disagree about whether the 28-day lifetime is app-side or
 pump-enforced on all relevant firmware. This tool does not resolve that question:
-it preserves source timestamps and always reports pump validity as unverified.
+it preserves source timestamps and leaves expiry tracking to the consuming driver.

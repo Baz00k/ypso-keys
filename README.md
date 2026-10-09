@@ -97,8 +97,8 @@ state. Cleanup checks process identity before terminating anything it owns.
 - Secret input/output uses restrictive files, no-clobber creation, no symlink
   following, and bounded size
 - Worker timeouts, structured errors, cleanup journals, and device locks
-- Stored key age is preserved; `review_after` is only an operational reminder and
-  `pump_validity` remains `unverified`
+- Source timestamps (`created_at`, `captured_at`) are preserved; expiry tracking
+  is left to the consuming driver
 
 ## Source adapters
 
