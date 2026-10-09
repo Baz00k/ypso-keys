@@ -78,16 +78,12 @@ class Session:
         return hashlib.sha256(self.shared_key).hexdigest()[:16]
 
     def summary(self) -> dict[str, Any]:
-        review = self.created_at + timedelta(days=25)
         return {
             "schema_version": 1,
             "pump": {"mac": self.pump_mac, "serial": self.pump_serial},
             "key_fingerprint": self.fingerprint,
             "created_at": iso(self.created_at),
             "captured_at": iso(self.captured_at),
-            "review_after": iso(review),
-            "review_due": datetime.now(timezone.utc) >= review,
-            "pump_validity": "unverified",
             "source": self.source,
         }
 
