@@ -1,6 +1,7 @@
 import json
 import subprocess
 
+import frida
 import pytest
 
 from ypso_keys.capture import (
@@ -38,7 +39,7 @@ class FakeDonor:
         if command == "id -u":
             return b"0"
         if "--version" in command:
-            return b"17.17.0"
+            return frida.__version__.encode()
         if "sha256sum" in command:
             return b"a" * 64 + b"  prefs.xml"
         if "ss -ltn" in command:
@@ -127,6 +128,30 @@ def test_capture_order_and_cleanup(initial_bt, monkeypatch):
     assert not recovery_path(donor.serial).exists()
 
 
+def test_mismatched_frida_version_never_starts_capture(monkeypatch):
+    donor = FakeDonor()
+    original = donor.root
+
+    def root(command):
+        if "--version" in command:
+            return b"0.0.0"
+        return original(command)
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("worker must not start")
+
+    donor.root = root
+    monkeypatch.setattr(subprocess, "run", unexpected)
+    with pytest.raises(ToolError) as error:
+        capture(donor, profile(), SERVER)
+    assert error.value.code == "frida_version"
+    assert "stop" not in donor.calls
+    assert ("bluetooth", False) not in donor.calls
+    assert not donor.listening
+    assert donor.bt
+    assert not recovery_path(donor.serial).exists()
+
+
 @pytest.mark.parametrize("failure", ["timeout", "worker", "malformed", "interrupt"])
 def test_every_worker_failure_cleans_up(failure, monkeypatch):
     donor = FakeDonor()
@@ -143,6 +168,16 @@ def test_every_worker_failure_cleans_up(failure, monkeypatch):
     monkeypatch.setattr(subprocess, "run", worker)
     with pytest.raises((ToolError, KeyboardInterrupt)) as error:
         capture(donor, profile(), SERVER)
+    if failure == "interrupt":
+        assert isinstance(error.value, KeyboardInterrupt)
+    else:
+        assert isinstance(error.value, ToolError)
+        expected_code = {
+            "timeout": "capture_timeout",
+            "worker": "capture_failed",
+            "malformed": "capture_protocol",
+        }[failure]
+        assert error.value.code == expected_code
     assert "SECRET" not in str(error.value)
     assert not donor.listening
     assert donor.bt
