@@ -4,7 +4,7 @@
 
 | Adapter | Application | App version | Android | Frida | Status |
 |---|---|---:|---:|---:|---|
-| `mylife-maui-v1` | mylife App | 2.6.1.001 | 15 | 17.17.0 | Repeated captures worked; app storage unchanged |
+| `mylife-maui-v1` | mylife App | 2.6.1.001 | 15 | 17.17.0 | Repeated captures worked; encrypted preferences unchanged |
 
 Phone make and model do not matter. What matters is the app's storage layout and the Android and Frida versions.
 
@@ -21,7 +21,7 @@ A session key lasts at most 28 days.
 - `created_at` is the app's `sharedKeyDate`, the closest value available to when the key was generated.
 - `captured_at` is when you extracted the key. Extracting or re-exporting does not renew the key.
 
-The key expires at `created_at` plus 28 days. The pump does not report an expiry time, so the tool exports none.
+Consumers calculate the deadline as `created_at` plus 28 days. The pump does not report an expiry time, so the tool exports none, and the deadline does not guarantee the pump still accepts the key.
 
 ## Not verified
 

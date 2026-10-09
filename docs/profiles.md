@@ -24,9 +24,9 @@ This example shows the format only. It is not a working CamAPS configuration; yo
 
 - `identity`: how the tool learns which pump the key belongs to. `mylife-db-v1` reads the mylife database and converts the stored UUID to the pump's Bluetooth address. `explicit` requires both `--expect-pump` and `--pump-serial` on the command line and records that.
 - `preferences_path`: path to the encrypted file inside the app's data folder. It is only used to confirm the file did not change. It must be relative and cannot contain `..`.
-- `identity_config`: `null` for explicit identity. The built-in mylife adapter keeps its database path and fixed read-only query here. Custom profiles cannot supply SQL. A different database schema needs a new, reviewed identity strategy in the code.
+- `identity_config`: `null` for explicit identity. The built-in mylife adapter keeps its database path and fixed read-only query here. A custom profile that uses `mylife-db-v1` must repeat the built-in query exactly. Any other SQL is rejected, and a different database schema needs a new, reviewed identity strategy in the code.
 - `encoding`: `hex` or `base64`, nothing else. The tool does not guess the encoding or scan memory.
-- `fields`: exactly the three names shown, each different. The tool finds the one stored entry whose name ends with the `shared_key` name, then reads the other two fields with the same prefix. No match, or more than one, is an error.
+- `fields`: must contain exactly `shared_key`, `created_at`, and `reboot_counter`. Their values are the preference name endings to look for, and each must be different. The tool finds the one stored entry whose name ends with the `shared_key` name, then reads the other two fields with the same prefix. No match, or more than one, is an error.
 - Key date: a 13-digit Unix timestamp in milliseconds. Other formats need a separately tested converter. The tool never guesses dates.
 - Reboot counter: a decimal string, or `null` if absent. AAPS accepts 0 to 2147483647.
 - The preferences file, both Tink keysets (the encryption keys AndroidX uses), and the master key alias must already exist. The tool never creates a master key or app key storage.

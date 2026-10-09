@@ -11,7 +11,7 @@ Only the mylife App is supported (version 2.6.1.001 on Android 15 is the one ver
 - A computer running Linux (or similar) with `adb` (Android Debug Bridge, which lets the computer control a phone over USB) and Python 3.11 or newer
 - A rooted Android phone, called the source, with the mylife App installed and its data intact
 - Frida, the tool this program uses to read the app's stored settings. The `frida-server` program must already be on the source phone, and its version must match the Frida version on the computer
-- For direct import only: a second phone, called the target, running a debuggable AAPS build
+- For direct import only: a phone running a debuggable AAPS build, called the target. The tool does not require it to be a different phone from the source
 
 ## Install
 
@@ -38,7 +38,7 @@ export YPSO_KEYS_FRIDA_SERVER=/absolute/path/on/android/frida-server
    ypso-keys extract --source SOURCE_SERIAL --expect-pump AA:BB:CC:DD:EE:FF --json
    ```
 
-   Extraction saves a new session file that only you can read (permissions `0600`). By default it goes in `~/.local/state/ypso-keys`; set `YPSO_KEYS_STATE_DIR` to use another folder. The tool never overwrites an existing file. Screen and JSON output show only metadata and a key fingerprint. The session file holds the key in plain text, so keep it private.
+   Extraction saves a new session file that only you can read (permissions `0600`). By default it goes in `$XDG_STATE_HOME/ypso-keys`, or `~/.local/state/ypso-keys` if `XDG_STATE_HOME` is not set. Set `YPSO_KEYS_STATE_DIR` to use another folder. The tool never overwrites an existing file. Screen and JSON output show only metadata and a key fingerprint. The session file holds the key in plain text, so keep it private.
 
 2. Check the session file, then send it to AAPS. `export-aaps` writes a preferences file you can place into AAPS yourself. `import-aaps` writes it directly into AAPS on the target phone.
 
@@ -76,7 +76,7 @@ export YPSO_KEYS_FRIDA_SERVER=/absolute/path/on/android/frida-server
 - Extraction uses no internet, no mylife backend, no Bluetooth connection to the pump, and sends no pump commands.
 - Bluetooth on the source phone is confirmed off before the app resumes.
 - The app is held paused while its stored settings are read, so it never starts normally.
-- The app's storage is hashed before and after extraction. Any change makes the run fail.
+- The app's encrypted preferences file is hashed before and after extraction. Any change makes the run fail.
 - Exactly one key and one pump must be found, or the run fails.
 - Login credentials, the app's private keys, and read and write counters are never exported.
 - Secret files are private, never overwrite existing files, never follow symlinks, and have a size limit.
